@@ -1,0 +1,24 @@
+.search-box {
+
+    margin-bottom: 20px;
+
+}
+
+.search-box input {
+
+    padding: 8px;
+    width: 250px;
+    margin-right: 10px;
+
+}
+
+.search-box button {
+
+    padding: 8px 15px;
+
+}
+
+.error-message {
+  margin: 10px 0;
+  font-weight: bold;
+}

@@ -131,4 +131,16 @@ export class ReactiveEnrollmentFormComponent implements OnInit {
 
   }
 
+  canDeactivate(): boolean {
+
+  if (!this.enrollForm.dirty) {
+    return true;
+  }
+
+  return window.confirm(
+    'You have unsaved changes. Leave?'
+  );
+
+}
+
 }

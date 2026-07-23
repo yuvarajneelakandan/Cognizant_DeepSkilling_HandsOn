@@ -1,36 +1,123 @@
-<h2>Available Courses</h2>
+<div class="search-box">
 
-<!-- Loading Message -->
-<p *ngIf="isLoading">
-    Loading courses...
-</p>
+  <input
+    type="text"
+    placeholder="Search courses..."
+    [(ngModel)]="searchTerm">
 
-<!-- Course List -->
-<div *ngIf="!isLoading">
-
-    <ng-container *ngIf="courses.length > 0; else noCourses">
-
-        <app-course-card
-            *ngFor="let course of courses; trackBy: trackByCourseId"
-            [course]="course"
-            (enrollRequested)="onEnroll($event)">
-        </app-course-card>
-
-    </ng-container>
+  <button
+    type="button"
+    (click)="updateSearch()">
+    Search
+  </button>
 
 </div>
 
-<ng-template #noCourses>
-    <p>No courses available.</p>
-</ng-template>
 
-<p *ngIf="selectedCourseId">
-    Selected Course ID: {{ selectedCourseId }}
+<h2>Available Courses</h2>
+
+
+<!-- NgRx Error State -->
+<p
+  *ngIf="error$ | async as error"
+  class="error-message">
+
+  {{ error }}
+
 </p>
 
-<app-course-card
-    *ngFor="let course of courses; trackBy: trackByCourseId"
-    [course]="course"
-    (enrollRequested)="onEnroll($event)"
-    appHighlight="lightblue">
-</app-course-card>
+
+<!-- NgRx Loading State -->
+<p *ngIf="loading$ | async">
+  Loading courses...
+</p>
+
+
+<!-- Course data comes from the NgRx Store -->
+<ng-container *ngIf="courses$ | async as courses">
+
+  <ng-container *ngIf="courses.length > 0; else noCourses">
+
+    <div
+      *ngFor="let course of courses; trackBy: trackByCourseId"
+      class="course-wrapper"
+      appHighlight="lightblue"
+      (click)="viewCourse(course.id)">
+
+      <app-course-card
+        [course]="course"
+        (enrollRequested)="onEnroll($event)">
+      </app-course-card>
+
+    </div>
+
+  </ng-container>
+
+
+  <!-- Hands-On 8: View students enrolled in a course -->
+
+  <hr>
+
+  <h3>View Enrolled Students</h3>
+
+  <div class="student-buttons">
+
+    <button
+      *ngFor="let course of courses"
+      type="button"
+      (click)="showStudents(course.id); $event.stopPropagation()">
+
+      {{ course.name }}
+
+    </button>
+
+  </div>
+
+</ng-container>
+
+
+<!-- No Courses Template -->
+<ng-template #noCourses>
+
+  <p>No courses available.</p>
+
+</ng-template>
+
+
+<!-- Selected Course -->
+<p *ngIf="selectedCourseId">
+
+  Selected Course ID:
+  {{ selectedCourseId }}
+
+</p>
+
+
+<!-- Enrolled Students -->
+<div *ngIf="selectedCourseId">
+
+  <h3>
+    Enrolled Students for Course
+    {{ selectedCourseId }}
+  </h3>
+
+  <div
+    *ngIf="enrolledStudents.length > 0; else noStudents">
+
+    <p *ngFor="let student of enrolledStudents">
+
+      {{ student.name }} - {{ student.email }}
+
+    </p>
+
+  </div>
+
+  <ng-template #noStudents>
+
+    <p>
+      No students enrolled in this course.
+    </p>
+
+  </ng-template>
+
+</div>

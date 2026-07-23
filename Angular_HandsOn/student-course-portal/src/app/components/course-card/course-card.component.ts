@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+
 import {
   Component,
   EventEmitter,
@@ -7,12 +8,29 @@ import {
   OnChanges,
   SimpleChanges
 } from '@angular/core';
+
+import { Observable } from 'rxjs';
+import { Store } from '@ngrx/store';
+
 import { CreditLabelPipe } from '../../pipes/credit-label.pipe';
+
+import {
+  enrollInCourse,
+  unenrollFromCourse
+} from '../../store/enrollment/enrollment.actions';
+
+import {
+  selectEnrolledIds
+} from '../../store/enrollment/enrollment.selectors';
+
 
 @Component({
   selector: 'app-course-card',
   standalone: true,
-  imports: [CommonModule, CreditLabelPipe],
+  imports: [
+    CommonModule,
+    CreditLabelPipe
+  ],
   templateUrl: './course-card.component.html',
   styleUrl: './course-card.component.css'
 })
@@ -26,43 +44,103 @@ export class CourseCardComponent implements OnChanges {
     gradeStatus: string;
   };
 
-  @Output() enrollRequested = new EventEmitter<number>();
+  @Output() enrollRequested =
+    new EventEmitter<number>();
 
   isExpanded = false;
 
-  enrolled = false;
+  enrolledIds$: Observable<number[]>;
+
+
+  constructor(private store: Store) {
+
+    this.enrolledIds$ =
+      this.store.select(selectEnrolledIds);
+
+  }
+
 
   ngOnChanges(changes: SimpleChanges): void {
-    console.log('Course input changed:', changes['course']);
+
+    if (changes['course']) {
+
+      console.log(
+        'Course input changed:',
+        changes['course']
+      );
+
+    }
+
   }
 
-  enroll(): void {
-    this.enrolled = true;
-    this.enrollRequested.emit(this.course.id);
+
+  toggleEnrollment(
+    courseId: number,
+    enrolledIds: number[]
+  ): void {
+
+    if (enrolledIds.includes(courseId)) {
+
+      this.store.dispatch(
+        unenrollFromCourse({ courseId })
+      );
+
+    } else {
+
+      this.store.dispatch(
+        enrollInCourse({ courseId })
+      );
+
+      // Preserve parent-child communication
+      // introduced in Hands-On 2.
+      this.enrollRequested.emit(courseId);
+
+    }
+
   }
+
 
   toggleDetails(): void {
+
     this.isExpanded = !this.isExpanded;
+
   }
 
-  // Getter keeps the template cleaner and easier to read.
+
+  // Getter keeps conditional styling logic
+  // out of the HTML template.
   get cardClasses() {
+
     return {
-      'card--enrolled': this.enrolled,
-      'card--full': this.course.credits >= 4,
-      'expanded': this.isExpanded
+
+      'card--enrolled': false,
+
+      'card--full':
+        this.course.credits >= 4,
+
+      'expanded':
+        this.isExpanded
+
     };
+
   }
+
 
   get borderColor(): string {
+
     switch (this.course.gradeStatus) {
+
       case 'passed':
         return 'green';
+
       case 'failed':
         return 'red';
+
       default:
         return 'gray';
+
     }
+
   }
 
 }

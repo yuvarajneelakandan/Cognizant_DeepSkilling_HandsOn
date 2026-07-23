@@ -1,77 +1,191 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
+
+import { Observable, Subject } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
+
+import { Store } from '@ngrx/store';
+
 import { CourseCardComponent } from '../../components/course-card/course-card.component';
 import { HighlightDirective } from '../../directives/highlight.directive';
 
+import { Course } from '../../models/course.model';
+
+import {
+  EnrollmentService,
+  Student
+} from '../../services/enrollment.service';
+
+import {
+  loadCourses
+} from '../../store/course/course.actions';
+
+import {
+  selectAllCourses,
+  selectCoursesError,
+  selectCoursesLoading
+} from '../../store/course/course.selectors';
+
+
 @Component({
   selector: 'app-course-list',
-  imports: [CommonModule, CourseCardComponent, HighlightDirective],
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    CourseCardComponent,
+    HighlightDirective
+  ],
   templateUrl: './course-list.component.html',
   styleUrl: './course-list.component.css'
 })
 export class CourseListComponent implements OnInit {
 
-  isLoading = true;
+  // ---------------- Existing Properties ----------------
 
-  courses = [
-    {
-      id: 1,
-      name: 'Angular Fundamentals',
-      code: 'ANG101',
-      credits: 4,
-      gradeStatus: 'passed'
-    },
-    {
-      id: 2,
-      name: 'Java Programming',
-      code: 'JAVA201',
-      credits: 3,
-      gradeStatus: 'pending'
-    },
-    {
-      id: 3,
-      name: 'Database Management Systems',
-      code: 'DBMS301',
-      credits: 4,
-      gradeStatus: 'failed'
-    },
-    {
-      id: 4,
-      name: 'Web Technologies',
-      code: 'WEB401',
-      credits: 3,
-      gradeStatus: 'passed'
-    },
-    {
-      id: 5,
-      name: 'Cloud Computing',
-      code: 'CC501',
-      credits: 4,
-      gradeStatus: 'pending'
-    }
-  ];
+  searchTerm = '';
 
   selectedCourseId: number | null = null;
 
-  ngOnInit(): void {
+  enrolledStudents: Student[] = [];
 
-    setTimeout(() => {
-      this.isLoading = false;
-    }, 1500);
+  selectedCourse$ = new Subject<number>();
+
+
+  // ---------------- NgRx State ----------------
+
+  courses$: Observable<Course[]>;
+
+  loading$: Observable<boolean>;
+
+  error$: Observable<string | null>;
+
+
+  constructor(
+    private router: Router,
+    private route: ActivatedRoute,
+    private enrollmentService: EnrollmentService,
+    private store: Store
+  ) {
+
+    // Select course data from the NgRx store.
+    this.courses$ =
+      this.store.select(selectAllCourses);
+
+    this.loading$ =
+      this.store.select(selectCoursesLoading);
+
+    this.error$ =
+      this.store.select(selectCoursesError);
 
   }
 
+
+  ngOnInit(): void {
+
+    // Read search value from the URL query parameter.
+    const search =
+      this.route.snapshot.queryParamMap.get('search');
+
+    if (search) {
+      this.searchTerm = search;
+    }
+
+
+    // Dispatch NgRx action.
+    // The Course Effect will perform the HTTP request.
+    this.store.dispatch(loadCourses());
+
+
+    // Load enrolled students when a course is selected.
+    this.selectedCourse$
+      .pipe(
+
+        // switchMap cancels the previous request
+        // if another course is selected.
+        switchMap((courseId: number) =>
+          this.enrollmentService.getStudentsByCourse(courseId)
+        )
+
+      )
+      .subscribe({
+
+        next: (students: Student[]) => {
+
+          this.enrolledStudents = students;
+
+        },
+
+        error: (error: unknown) => {
+
+          console.error(
+            'Failed to load enrolled students:',
+            error
+          );
+
+        }
+
+      });
+
+  }
+
+
   onEnroll(courseId: number): void {
 
-    console.log('Enrolling in course:', courseId);
+    console.log(
+      'Enrolling in course:',
+      courseId
+    );
+
     this.selectedCourseId = courseId;
 
   }
 
-  // trackBy improves performance by allowing Angular
-  // to reuse existing DOM elements instead of recreating them.
-  trackByCourseId(index: number, course: any): number {
+
+  showStudents(courseId: number): void {
+
+    this.selectedCourseId = courseId;
+
+    this.selectedCourse$.next(courseId);
+
+  }
+
+
+  viewCourse(courseId: number): void {
+
+    this.router.navigate([
+      'courses',
+      courseId
+    ]);
+
+  }
+
+
+  updateSearch(): void {
+
+    this.router.navigate(
+      ['courses'],
+      {
+        queryParams: {
+          search: this.searchTerm || null
+        }
+      }
+    );
+
+  }
+
+
+  // trackBy improves rendering performance because
+  // Angular can reuse existing course elements.
+  trackByCourseId(
+    index: number,
+    course: Course
+  ): number {
+
     return course.id;
+
   }
 
 }

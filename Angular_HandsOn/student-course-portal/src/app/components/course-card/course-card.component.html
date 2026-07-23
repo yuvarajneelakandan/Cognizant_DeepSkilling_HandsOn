@@ -1,47 +1,110 @@
 <div
-    class="course-card"
-    [ngClass]="cardClasses"
-    [ngStyle]="{'border-left': '6px solid ' + borderColor}">
+  class="course-card"
+  [ngClass]="cardClasses"
+  [ngStyle]="{
+    'border-left': '6px solid ' + borderColor
+  }">
 
-    <h3>{{ course.name }}</h3>
+
+  <h3>
+    {{ course.name }}
+  </h3>
+
+
+  <p>
+    <strong>Course Code:</strong>
+    {{ course.code }}
+  </p>
+
+
+  <p>
+    <strong>Credits:</strong>
+    {{ course.credits | creditLabel }}
+  </p>
+
+
+  <!-- Grade Status -->
+
+  <div [ngSwitch]="course.gradeStatus">
+
+    <span
+      *ngSwitchCase="'passed'"
+      class="badge passed">
+
+      Passed
+
+    </span>
+
+
+    <span
+      *ngSwitchCase="'failed'"
+      class="badge failed">
+
+      Failed
+
+    </span>
+
+
+    <span
+      *ngSwitchCase="'pending'"
+      class="badge pending">
+
+      Pending
+
+    </span>
+
+  </div>
+
+
+  <!-- NgRx Enrollment State -->
+
+  <ng-container
+    *ngIf="enrolledIds$ | async as enrolledIds">
+
+    <button
+      type="button"
+      (click)="
+        toggleEnrollment(course.id, enrolledIds);
+        $event.stopPropagation()
+      ">
+
+      {{
+        enrolledIds.includes(course.id)
+          ? 'Unenroll'
+          : 'Enroll'
+      }}
+
+    </button>
+
+  </ng-container>
+
+
+  <!-- Course Details -->
+
+  <button
+    type="button"
+    (click)="toggleDetails(); $event.stopPropagation()">
+
+    {{
+      isExpanded
+        ? 'Hide Details'
+        : 'Show Details'
+    }}
+
+  </button>
+
+
+  <div *ngIf="isExpanded">
 
     <p>
-        <strong>Course Code:</strong>
-        {{ course.code }}
+      <strong>Course ID:</strong>
+      {{ course.id }}
     </p>
 
     <p>
-        <strong>Credits:</strong>
-         {{ course.credits | creditLabel }}
+      This course is available for enrollment.
     </p>
 
-    <div [ngSwitch]="course.gradeStatus">
-
-        <span *ngSwitchCase="'passed'" class="badge passed">
-            Passed
-        </span>
-
-        <span *ngSwitchCase="'failed'" class="badge failed">
-            Failed
-        </span>
-
-        <span *ngSwitchCase="'pending'" class="badge pending">
-            Pending
-        </span>
-
-    </div>
-
-    <button (click)="enroll()">
-        Enroll
-    </button>
-
-    <button (click)="toggleDetails()">
-        {{ isExpanded ? 'Hide Details' : 'Show Details' }}
-    </button>
-
-    <div *ngIf="isExpanded">
-        <p><strong>Course ID:</strong> {{ course.id }}</p>
-        <p>This course is available for enrollment.</p>
-    </div>
+  </div>
 
 </div>
